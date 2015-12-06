@@ -13,6 +13,7 @@ my $dsn = 'dbi:mysql:garage:127.0.0.1:3306';
 my $user='mysql';
 my $pass = '';
 
+my $dsr = 'dbi:mysql:radio:127.0.0.1:3306';
 
 my ($socket,$client_socket);
 my ($peeraddress,$peerport);
@@ -22,7 +23,7 @@ my ($peeraddress,$peerport);
 SSL_Passwd_cb=>'passwordsuckit';
 $socket = new IO::Socket::SSL (
 localhost => '0.0.0.0', #'127.0.0.1',
-LocalPort => '3130',
+LocalPort => '3131',
 Proto => 'tcp',
 Listen => 5,
 Reuse => 1,
@@ -36,6 +37,24 @@ print " SERVER Waiting for client connection on port 3130\n";
 print "local address: ", $socket->sockaddr(),"\n";
 my $plug=1;
 my $addr;
+
+
+sub garage_check{
+	print "Connected from: ",$addr->peerhost();# Display messages
+        print " Port: ", $addr->peerport(), "\n";
+        my $dbh = DBI->connect($dsn,$user,$pass) or warn "Can't connect to DB: $DBI::errstr\n";
+        my $nth = $dbh->prepare("select current_status from status");
+        my $the_status=$nth->execute();
+        my @status_row;
+        while (@status_row = $nth->fetchrow()){
+             print Dumper(@status_row);
+             $status=$status_row[0];
+        }
+        print Dumper(@status_row);
+        $nth->finish();
+        print Dumper($status);
+	return $status;
+}
 #$addr= $socket->accept() or warn "failed to accept handshake or some shit: $!, $SSL_ERROR";
 while(1)
 {
@@ -49,19 +68,20 @@ while(1)
 	    }
 	    else
 	    {
-		print "Connected from: ",$addr->peerhost();# Display messages
-		print " Port: ", $addr->peerport(), "\n";
-		my $dbh = DBI->connect($dsn,$user,$pass) or warn "Can't connect to DB: $DBI::errstr\n";
-		my $nth = $dbh->prepare("select current_status from status");
-		my $the_status=$nth->execute();
-		my @status_row;
-		while (@status_row = $nth->fetchrow()){
-		print Dumper(@status_row);	
-		$status=$status_row[0];
-		}
-		print Dumper(@status_row);
-		$nth->finish();
-		print Dumper($status);
+		my $status=garage_check();
+		#print "Connected from: ",$addr->peerhost();# Display messages
+		#print " Port: ", $addr->peerport(), "\n";
+		#my $dbh = DBI->connect($dsn,$user,$pass) or warn "Can't connect to DB: $DBI::errstr\n";
+		#my $nth = $dbh->prepare("select current_status from status");
+		#my $the_status=$nth->execute();
+		#my @status_row;
+		#while (@status_row = $nth->fetchrow()){
+	#		print Dumper(@status_row);	
+	#		$status=$status_row[0];
+	#	}
+	#	print Dumper(@status_row);
+	#	$nth->finish();
+	#	print Dumper($status);
 		my $result='';
 		print "enter me\n";
 		while (<$addr>) 
@@ -69,13 +89,13 @@ while(1)
 			chomp($_);
 			print Dumper($_);
 			$result=$_;
-		#	print "what the fuck $result\n";
+			#print "what the fuck $result\n";
 			#print "the line: "+$result +"\n";
 			#print Dumper($result);
 			last if $_ =~m/<>/gi;
 			#print $addr $_;
 		}
-	#	int rando = rand(2000);
+		#int rando = rand(2000);
 		if ($result =~ m/status_me_bitch/i)
 		{
 		    if ($status == 1)
